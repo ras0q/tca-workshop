@@ -94,24 +94,32 @@ public struct RepositoryListView: View {
     }
 
     public var body: some View {
-        WithViewStore(store, observe: { $0 }) { viewStore in
-            Group {
-                if viewStore.isLoading {
-                    ProgressView()
-                } else {
-                    List {
-                        ForEachStore(
-                            store.scope(
-                                state: \.repositoryRows,
-                                action: { .repositoryRow(id: $0, action: $1) }
-                            ),
-                            content: RepositoryRowView.init(store:)
-                        )
+        NavigationStack {
+            WithViewStore(store, observe: { $0 }) { viewStore in
+                Group {
+                    if viewStore.isLoading {
+                        ProgressView()
+                    } else {
+                        List {
+                            ForEachStore(
+                                store.scope(
+                                    state: \.repositoryRows,
+                                    action: { .repositoryRow(id: $0, action: $1) }
+                                ),
+                                content: RepositoryRowView.init(store:)
+                            )
+                        }
                     }
                 }
-            }
-            .onAppear {
-                viewStore.send(.onAppear)
+                .onAppear {
+                    viewStore.send(.onAppear)
+                }
+                .navigationTitle("Repositories")
+                .searchable(
+                    text: viewStore.$query,
+                    placement: .navigationBarDrawer,
+                    prompt: "Input query"
+                )
             }
         }
     }
