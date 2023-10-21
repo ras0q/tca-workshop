@@ -8,19 +8,22 @@ public struct RepositoryList: Reducer {
     public struct State: Equatable {
         var repositoryRows: IdentifiedArrayOf<RepositoryRow.State> = []
         var isLoading: Bool = false
-        
+        @BindingState var query: String = ""
+
         public init() {}
     }
 
-    public enum Action: Equatable {
+    public enum Action: Equatable, BindableAction {
         case onAppear
         case searchRepositoriesResponse(TaskResult<[Repository]>)
         case repositoryRow(id: RepositoryRow.State.ID, action: RepositoryRow.Action)
+        case binding(BindingAction<State>)
     }
 
     public init() {}
 
     public var body: some ReducerOf<Self> {
+        BindingReducer()
         Reduce { state, action in
             switch action {
             case .onAppear:
@@ -66,6 +69,8 @@ public struct RepositoryList: Reducer {
                     return .none
                 }
             case .repositoryRow:
+                return .none
+            case .binding:
                 return .none
             }
         }
