@@ -95,43 +95,13 @@ public struct RepositoryListView: View {
                     ProgressView()
                 } else {
                     List {
-                        ForEach(viewStore.repositories, id: \.id) { repository in
-                            Button {
-
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(repository.fullName)
-                                        .font(.title2.bold())
-                                    Text(repository.description ?? "")
-                                        .font(.body)
-                                        .lineLimit(2)
-                                    HStack(alignment: .center, spacing: 32) {
-                                        Label(
-                                            title: {
-                                                Text("\(repository.stargazersCount)")
-                                                    .font(.callout)
-                                            },
-                                            icon: {
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(.yellow)
-                                            }
-                                        )
-                                        Label(
-                                            title: {
-                                                Text("\(repository.language ?? "")")
-                                                    .font(.callout)
-                                            },
-                                            icon: {
-                                                Image(systemName: "text.word.spacing")
-                                                    .foregroundStyle(.gray)
-                                            }
-                                        )
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        ForEachStore(
+                            store.scope(
+                                state: \.repositoryRows,
+                                action: { .repositoryRow(id: $0, action: $1) }
+                            ),
+                            content: RepositoryRowView.init(store:)
+                        )
                     }
                 }
             }
