@@ -1,11 +1,12 @@
 import ComposableArchitecture
 import Entity
 import Foundation
+import IdentifiedCollections
 import SwiftUI
 
 public struct RepositoryList: Reducer {
     public struct State: Equatable {
-        var repositories: [Repository] = []
+        var repositoryRows: IdentifiedArrayOf<RepositoryRow.State> = []
         var isLoading: Bool = false
         
         public init() {}
@@ -14,6 +15,7 @@ public struct RepositoryList: Reducer {
     public enum Action: Equatable {
         case onAppear
         case searchRepositoriesResponse(TaskResult<[Repository]>)
+        case repositoryRow(id: RepositoryRow.State.ID, action: RepositoryRow.Action)
     }
 
     public init() {}
@@ -53,13 +55,22 @@ public struct RepositoryList: Reducer {
 
                 switch result {
                 case let .success(response):
-                    state.repositories = response
+                    state.repositoryRows = .init(
+                        uniqueElements: response.map {
+                            .init(repository: $0)
+                        }
+                    )
                     return .none
                 case .failure:
                     // TODO: handling error
                     return .none
                 }
+            case .repositoryRow:
+                return .none
             }
+        }
+        .forEach(\.repositoryRows, action: /Action.repositoryRow(id:action:)) {
+            RepositoryRow()
         }
     }
 
