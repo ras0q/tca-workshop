@@ -1,6 +1,8 @@
 import ComposableArchitecture
+import Dependencies
 import Entity
 import Foundation
+import GitHubAPIClient
 import IdentifiedCollections
 import SwiftUI
 
@@ -27,37 +29,15 @@ public struct RepositoryList: Reducer {
       case response
     }
 
+    @Dependency(\.gitHubAPIClient) var gitHubAPIClient
+
     public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce { state, action in
             switch action {
             case .onAppear:
                 state.isLoading = true
-                return .run { send in
-                    await send(
-                        .searchRepositoriesResponse(
-                            TaskResult {
-                                let query = "composable"
-                                let url = URL(
-                                  string: "https://api.github.com/search/repositories?q=\(query)&sort=stars"
-                                )!
-                                var request = URLRequest(url: url)
-                                if let token = Bundle.main.infoDictionary?["GitHubPersonalAccessToken"] as? String {
-                                  request.setValue(
-                                    "Bearer \(token)",
-                                    forHTTPHeaderField: "Authorization"
-                                  )
-                                }
-                                let (data, _) = try await URLSession.shared.data(for: request)
-                                let repositories = try jsonDecoder.decode(
-                                  GithubSearchResult.self,
-                                  from: data
-                                ).items
-                                return repositories
-                            }
-                        )
-                    )
-                }
+                return searchRepositories(by: "composable")
             case let .searchRepositoriesResponse(result):
                 state.isLoading = false
 
@@ -106,6 +86,7 @@ public struct RepositoryList: Reducer {
             await send(
                 .searchRepositoriesResponse(
                     TaskResult {
+                        try await gitHubAPIClient.searchRepositories(query)
                     }
                 )
             )
@@ -159,6 +140,11 @@ public struct RepositoryListView: View {
         ) {
             RepositoryList()
                 ._printChanges()
+        } withDependencies: {
+            $0.gitHubAPIClient.searchRepositories = { _ in
+                try await Task.sleep(for: .seconds(0.3))
+                return (1...20).map { .mock(id: $0) }
+            }
         }
     )
 }
