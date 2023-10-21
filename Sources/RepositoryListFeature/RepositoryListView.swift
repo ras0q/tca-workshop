@@ -17,10 +17,15 @@ public struct RepositoryList: Reducer {
         case onAppear
         case searchRepositoriesResponse(TaskResult<[Repository]>)
         case repositoryRow(id: RepositoryRow.State.ID, action: RepositoryRow.Action)
+        case queryChangeDebounced
         case binding(BindingAction<State>)
     }
 
     public init() {}
+
+    private enum CancelID {
+      case response
+    }
 
     public var body: some ReducerOf<Self> {
         BindingReducer()
@@ -70,6 +75,23 @@ public struct RepositoryList: Reducer {
                 }
             case .repositoryRow:
                 return .none
+            case .binding(\.$query):
+                return .run { send in
+                    await send(.queryChangeDebounced)
+                }
+                .debounce(
+                    id: CancelID.response,
+                    for: .seconds(0.3),
+                    scheduler: DispatchQueue.main
+                )
+            case .queryChangeDebounced:
+                guard !state.query.isEmpty else {
+                    return .none
+                }
+
+                state.isLoading = true
+
+                return searchRepositories(by: state.query)
             case .binding:
                 return .none
             }
@@ -78,6 +100,34 @@ public struct RepositoryList: Reducer {
             RepositoryRow()
         }
     }
+
+    func searchRepositories(by query: String) -> Effect<Action> {
+        .run { send in
+            await send(
+                .searchRepositoriesResponse(
+                    TaskResult {
+                        let url = URL(
+                                      string: "https://api.github.com/search/repositories?q=\(query)&sort=stars"
+                                    )!
+                        var request = URLRequest(url: url)
+                        if let token = Bundle.main.infoDictionary?["GitHubPersonalAccessToken"] as? String {
+                          request.setValue(
+                            "Bearer \(token)",
+                            forHTTPHeaderField: "Authorization"
+                          )
+                        }
+                        let (data, _) = try await URLSession.shared.data(for: request)
+                        let repositories = try jsonDecoder.decode(
+                          GithubSearchResult.self,
+                          from: data
+                        ).items
+                        return repositories
+                    }
+                )
+            )
+        }
+    }
+
 
     private let jsonDecoder: JSONDecoder = {
       let decoder = JSONDecoder()
