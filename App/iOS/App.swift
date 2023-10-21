@@ -1,10 +1,18 @@
+import RepositoryListFeature
 import SwiftUI
 
 @main
 struct TCAWorkshopApp: SwiftUI.App {
   var body: some Scene {
     WindowGroup {
-      EmptyView()
+        RepositoryListView(
+            store: .init(
+                initialState: RepositoryList.State(),
+                reducer: {
+                    RepositoryList()
+                }
+            )
+        )
     }
   }
 }

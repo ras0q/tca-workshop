@@ -132,11 +132,12 @@ public struct RepositoryListView: View {
 }
 
 #Preview {
-  RepositoryListView(
-    store: .init(
-      initialState: RepositoryList.State()
-    ) {
-      RepositoryList()
-    }
-  )
+    RepositoryListView(
+        store: .init(
+            initialState: RepositoryList.State()
+        ) {
+            RepositoryList()
+                ._printChanges()
+        }
+    )
 }
